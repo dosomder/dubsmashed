@@ -1,8 +1,11 @@
 package com.dosomder.dubsmashed;
 
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -14,9 +17,38 @@ public class Main implements IXposedHookLoadPackage {
 		 if (!lpparam.packageName.equals("com.mobilemotion.dubsmash"))
 	            return;
 		 XposedBridge.log("Loaded dubsmashed");
-		 
-		 findAndHookMethod("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader, "execute", String.class, com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler.class, execute);
+
+		 try
+		 {
+			 XposedHelpers.findClass("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader);
+			 findAndHookMethod("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, setupRenderer);
+			 XposedBridge.log("hooked setupRenderer");
+		 }
+		 catch(de.robv.android.xposed.XposedHelpers.ClassNotFoundError e)
+		 {
+		 }
+		 try
+		 {
+			 XposedHelpers.findClass("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader);
+			 findAndHookMethod("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader, "execute", String.class, com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler.class, execute);
+			 XposedBridge.log("hooked execute");
+		 }
+		 catch(de.robv.android.xposed.XposedHelpers.ClassNotFoundError e)
+		 {
+		 }
 	 }
+	 
+	 XC_MethodHook setupRenderer = new XC_MethodHook() {
+		 @Override
+		 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+			 ((Bitmap)param.args[0]).eraseColor(Color.TRANSPARENT); 
+		 }
+		 
+		 @Override
+		 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+			 
+		 }
+	 };
 	 
 	 XC_MethodHook execute = new XC_MethodHook() {
 		 @Override
