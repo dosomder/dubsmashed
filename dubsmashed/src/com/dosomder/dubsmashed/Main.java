@@ -12,36 +12,69 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 public class Main implements IXposedHookLoadPackage {
 	private static final boolean DEBUG = false;
 	
+	private enum Hooking
+	{
+		HookOK,
+		ClassNotFound,
+		MethodNotFound,
+	}
+	
+	private Hooking TryHook(String className, ClassLoader classLdr, String method, Object... parametersAndCallback)
+	{
+		try
+		{
+			Class<?> clazz = XposedHelpers.findClass(className, classLdr);
+			Object[] parameters = new Object[parametersAndCallback.length - 1];
+			for(int i = 0;i < parametersAndCallback.length - 1;i++) //ignore Callback
+				parameters[i] = parametersAndCallback[i];
+					
+			XposedHelpers.findMethodExact(clazz, method, parameters);
+			findAndHookMethod(className, classLdr, method, parametersAndCallback);
+		}
+		catch(de.robv.android.xposed.XposedHelpers.ClassNotFoundError e)
+		{
+			return Hooking.ClassNotFound;
+		}
+		catch(java.lang.NoSuchMethodError e)
+		{
+			return Hooking.MethodNotFound;
+		}
+		return Hooking.HookOK;
+	}
+		
 	 @Override
-	 public void handleLoadPackage(LoadPackageParam lpparam) throws Throwable { 
-		 if (!lpparam.packageName.equals("com.mobilemotion.dubsmash"))
-	            return;
+	 public void handleLoadPackage(LoadPackageParam lpparam) throws Throwable {
+		 if(!lpparam.packageName.equals("com.mobilemotion.dubsmash"))
+			return;
 		 XposedBridge.log("Loaded dubsmashed");
-
-		 try
-		 {
-			 XposedHelpers.findClass("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader);
-			 findAndHookMethod("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, setupRenderer);
+		 
+		 Hooking hk = TryHook("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, setupRenderer);
+		 
+		 if(hk == Hooking.HookOK)
 			 XposedBridge.log("hooked setupRenderer");
-		 }
-		 catch(de.robv.android.xposed.XposedHelpers.ClassNotFoundError e)
+		 else if(hk == Hooking.MethodNotFound)
 		 {
+			 XposedBridge.log("setupRenderer -> not found");
+			 hk = TryHook("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, android.graphics.Bitmap.class, setupRenderer);
+			 if(hk == Hooking.HookOK)
+				 XposedBridge.log("hooked setupRenderer (2)");
 		 }
-		 try
+		 else if(hk == Hooking.ClassNotFound)
 		 {
-			 XposedHelpers.findClass("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader);
-			 findAndHookMethod("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader, "execute", String.class, com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler.class, execute);
-			 XposedBridge.log("hooked execute");
+			 XposedBridge.log("CodecOutputSurfaceManager -> not found");
+			 hk = TryHook("com.github.hiteshsondhi88.libffmpeg.FFmpeg", lpparam.classLoader, "execute", String.class, com.github.hiteshsondhi88.libffmpeg.FFmpegExecuteResponseHandler.class, execute);
+			 if(hk == Hooking.HookOK)
+				 XposedBridge.log("hooked execute"); 
 		 }
-		 catch(de.robv.android.xposed.XposedHelpers.ClassNotFoundError e)
-		 {
-		 }
+		 
+		 if(hk != Hooking.HookOK)
+			 XposedBridge.log("Error hooking dubsmash");
 	 }
 	 
 	 XC_MethodHook setupRenderer = new XC_MethodHook() {
 		 @Override
 		 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-			 ((Bitmap)param.args[0]).eraseColor(Color.TRANSPARENT); 
+			 ((Bitmap)param.args[0]).eraseColor(Color.TRANSPARENT);
 		 }
 		 
 		 @Override
