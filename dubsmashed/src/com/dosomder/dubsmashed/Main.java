@@ -74,7 +74,13 @@ public class Main implements IXposedHookLoadPackage {
 	 XC_MethodHook setupRenderer = new XC_MethodHook() {
 		 @Override
 		 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-			 ((Bitmap)param.args[0]).eraseColor(Color.TRANSPARENT);
+			 Bitmap bm = (Bitmap) param.args[0];
+			 if(DEBUG)
+				 XposedBridge.log("bitmap config is: " + bm.getConfig().toString());
+			 if (!bm.isMutable())
+				 param.args[0] = bm.copy(Bitmap.Config.ARGB_8888, true);
+
+			 ((Bitmap) param.args[0]).eraseColor(Color.TRANSPARENT);
 		 }
 		 
 		 @Override
