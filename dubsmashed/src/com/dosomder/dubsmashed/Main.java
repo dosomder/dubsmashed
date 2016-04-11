@@ -58,6 +58,12 @@ public class Main implements IXposedHookLoadPackage {
 			 hk = TryHook("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, android.graphics.Bitmap.class, setupRenderer);
 			 if(hk == Hooking.HookOK)
 				 XposedBridge.log("hooked setupRenderer (2)");
+			 else
+			 {
+				 hk = TryHook("com.mobilemotion.dubsmash.encoding.CodecOutputSurfaceManager", lpparam.classLoader, "setupRenderer", android.graphics.Bitmap.class, android.graphics.Bitmap.class, android.graphics.Bitmap.class, setupRenderer);
+				 if(hk == Hooking.HookOK)
+					 XposedBridge.log("hooked setupRenderer(3)");
+			 }
 		 }
 		 else if(hk == Hooking.ClassNotFound)
 		 {
